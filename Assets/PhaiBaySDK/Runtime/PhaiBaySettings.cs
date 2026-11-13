@@ -1,23 +1,28 @@
 using UnityEngine;
-
+using UnityEngine.Serialization;
 
 /// <summary>
-/// Create via Assets > Create > PhaiBay > Settings, name it "PhaiBaySettings" and put it in a Resources folder
-/// to auto-initialize the SDK before the first scene loads.
+/// SDK configuration. Open it with the menu <b>PhaiBay › Settings</b> (creates
+/// Assets/Resources/PhaiBaySettings.asset). When it lives in a Resources folder the SDK
+/// initializes itself before the first scene loads.
 /// </summary>
 [CreateAssetMenu(menuName = "PhaiBay/Settings", fileName = "PhaiBaySettings")]
 public class PhaiBaySettings : ScriptableObject
 {
     public const string ResourceName = "PhaiBaySettings";
 
-    [Tooltip("API key of the app (Dashboard API: POST /api/apps)")]
-    public string apiKey = "";
+    [Tooltip("App key chosen when the app was created in the dashboard (e.g. com.company.game). Identifies which app the events belong to.")]
+    [FormerlySerializedAs("apiKey")]
+    public string appKey = "";
 
     [Tooltip("Server base URL, e.g. https://analytics.example.com")]
-    public string serverUrl = "http://localhost:8080";
+    public string serverUrl = "";
 
     [Tooltip("Initialize automatically on startup (RuntimeInitializeOnLoadMethod)")]
     public bool autoInitialize = true;
+
+    [Tooltip("Also send automatic events: first_open, session_start, user_engagement. Off = only the events you log yourself.")]
+    public bool autoTrackEvents = false;
 
     [Tooltip("Seconds between uploads")]
     [Range(2, 300)] public float flushIntervalSeconds = 15f;
@@ -31,7 +36,7 @@ public class PhaiBaySettings : ScriptableObject
     [Tooltip("Max events kept on device while offline (oldest dropped)")]
     [Range(100, 50000)] public int maxQueueSize = 5000;
 
-    [Tooltip("A new session starts after the app was in background this long")]
+    [Tooltip("A new session id is created after the app was in background this long")]
     [Range(10, 7200)] public int sessionTimeoutSeconds = 1800;
 
     [Tooltip("Send events while running in the Unity Editor")]

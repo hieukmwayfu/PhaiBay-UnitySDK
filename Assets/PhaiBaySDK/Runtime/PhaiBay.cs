@@ -19,7 +19,7 @@ using UnityEngine;
 /// </summary>
 public static partial class PhaiBay
 {
-    public const string SdkVersion = "unity-1.0.0";
+    public const string SdkVersion = "unity-0.1.0";
 
     // limits (same as the server)
     const int MaxParams = 25;
@@ -35,7 +35,7 @@ public static partial class PhaiBay
     static string _userPropsJson; // cached snapshot, null = dirty
 
     internal static PhaiBaySettings Settings;
-    internal static string ApiKey;
+    internal static string AppKey;
     internal static string Endpoint;
     internal static bool Initialized;
     static bool _enabled = true;
@@ -60,15 +60,15 @@ public static partial class PhaiBay
     static void AutoInit()
     {
         var s = Resources.Load<PhaiBaySettings>(PhaiBaySettings.ResourceName);
-        if (s != null && s.autoInitialize && !string.IsNullOrEmpty(s.apiKey))
+        if (s != null && s.autoInitialize && !string.IsNullOrEmpty(s.appKey))
             Initialize(s);
     }
 
     /// <summary>Initialize with an API key and server URL (other options use defaults).</summary>
-    public static void Initialize(string apiKey, string serverUrl, bool debugLog = false)
+    public static void Initialize(string appKey, string serverUrl, bool debugLog = false)
     {
         var s = ScriptableObject.CreateInstance<PhaiBaySettings>();
-        s.apiKey = apiKey;
+        s.appKey = appKey;
         s.serverUrl = serverUrl;
         s.debugLog = debugLog;
         Initialize(s);
@@ -78,13 +78,13 @@ public static partial class PhaiBay
     {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
         if (Initialized) { Log("already initialized"); return; }
-        if (string.IsNullOrEmpty(settings.apiKey) || string.IsNullOrEmpty(settings.serverUrl))
+        if (string.IsNullOrEmpty(settings.appKey) || string.IsNullOrEmpty(settings.serverUrl))
         {
-            Debug.LogError("[PhaiBay] apiKey and serverUrl are required");
+            Debug.LogError("[PhaiBay] appKey and serverUrl are required");
             return;
         }
         Settings = settings;
-        ApiKey = settings.apiKey.Trim();
+        AppKey = settings.appKey.Trim();
         Endpoint = settings.serverUrl.TrimEnd('/') + "/v1/events";
         _appVersion = Application.version;
 
@@ -103,7 +103,7 @@ public static partial class PhaiBay
         Initialized = true;
         PhaiBayRunner.Create(); // loads persisted queue, uploads, tracks lifecycle
 
-        if (firstOpen) LogEventInternal(Events.FirstOpen, null);
+        if (firstOpen && settings.autoTrackEvents) LogEventInternal(Events.FirstOpen, null);
         StartSession();
         Log("initialized, instance id = " + AppInstanceId);
     }
@@ -209,7 +209,7 @@ public static partial class PhaiBay
     internal static void StartSession()
     {
         lock (Lock) _sessionId = Guid.NewGuid().ToString("N").Substring(0, 16);
-        LogEventInternal(Events.SessionStart, null);
+        if (Settings != null && Settings.autoTrackEvents) LogEventInternal(Events.SessionStart, null);
     }
 
     static Parameter ToParameter(string k, object v)
@@ -377,9 +377,17 @@ public static partial class PhaiBay
             UserProps.Clear();
             _userPropsJson = null;
             _sessionId = null;
+            _uid = null;
         }
+        // every static must be reset here: with "Enter Play Mode Options" (domain reload off)
+        // static fields survive between play sessions
         Initialized = false;
         Settings = null;
+        AppKey = null;
+        Endpoint = null;
+        _enabled = true;
+        _appVersion = null;
+        AppInstanceId = null;
     }
 
     internal static string Clip(string s, int n) => s == null ? "" : (s.Length <= n ? s : s.Substring(0, n));

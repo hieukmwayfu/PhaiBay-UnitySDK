@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   serverUrl: http://localhost:8080
-  apiKey: 
+  appKey: 
   debugLog: 1
 --- !u!4 &853822864
 Transform:

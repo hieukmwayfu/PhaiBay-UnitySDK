@@ -17,9 +17,9 @@ public static partial class PhaiBay
     /// <summary>Common event names (optional helpers, like FirebaseAnalytics.EventXxx).</summary>
     public static class Events
     {
-        public const string FirstOpen = "first_open";             // auto
-        public const string SessionStart = "session_start";       // auto
-        public const string UserEngagement = "user_engagement";   // auto
+        public const string FirstOpen = "first_open";             // auto (autoTrackEvents)
+        public const string SessionStart = "session_start";       // auto (autoTrackEvents)
+        public const string UserEngagement = "user_engagement";   // auto (autoTrackEvents)
         public const string LevelStart = "level_start";
         public const string LevelEnd = "level_end";
         public const string LevelUp = "level_up";

@@ -44,9 +44,16 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     internal static void Create()
     {
         if (_instance != null) return;
-        var go = new GameObject("[PhaiBay]") { hideFlags = HideFlags.HideAndDontSave };
+        // HideInHierarchy only: HideAndDontSave would keep the object alive after exiting Play mode,
+        // so with domain reload disabled the next Play would run two runners (double uploads).
+        var go = new GameObject("[PhaiBay]") { hideFlags = HideFlags.HideInHierarchy };
         DontDestroyOnLoad(go);
         _instance = go.AddComponent<PhaiBayRunner>();
+    }
+
+    void OnDestroy()
+    {
+        if (_instance == this) _instance = null;
     }
 
     internal static void RequestFlush() => _flushRequested = true;
@@ -111,7 +118,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     {
         long ms = (long)((Time.realtimeSinceStartup - _foregroundStart) * 1000f);
         _foregroundStart = Time.realtimeSinceStartup;
-        if (ms >= 1000)
+        if (ms >= 1000 && PhaiBay.Settings != null && PhaiBay.Settings.autoTrackEvents)
             PhaiBay.LogEventInternal(PhaiBay.Events.UserEngagement,
                 new[] { new PhaiBay.Parameter(PhaiBay.Params.EngagementTimeMsec, ms) });
     }
@@ -163,7 +170,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                 req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.SetRequestHeader("Content-Type", "application/json");
-                req.SetRequestHeader("X-API-Key", PhaiBay.ApiKey);
+                req.SetRequestHeader("X-App-Key", PhaiBay.AppKey);
                 if (gz) req.SetRequestHeader("Content-Encoding", "gzip");
                 req.timeout = 20;
                 yield return req.SendWebRequest();
@@ -196,7 +203,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                         wait = Mathf.Max(wait, raSec);
                     if (code == 401)
                     {
-                        Debug.LogError("[PhaiBay] invalid API key - check PhaiBaySettings.apiKey");
+                        Debug.LogError("[PhaiBay] unknown app key - check PhaiBaySettings.appKey (Dashboard > app > Tích hợp SDK)");
                         wait = MaxBackoff;
                     }
                     _nextAllowedSend = Time.realtimeSinceStartup + wait;

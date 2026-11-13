@@ -23,7 +23,7 @@ Hoặc thêm vào `Packages/manifest.json`:
 "com.phaibay.analytics": "https://github.com/hieukmwayfu/PhaiBay-UnitySDK.git?path=/Assets/PhaiBaySDK"
 ```
 
-Khóa phiên bản theo tag: thêm `#v1.0.0` vào cuối URL.
+> SDK đang ở giai đoạn thử nghiệm (`0.x`), **chưa có tag phát hành** — URL trên luôn lấy bản mới nhất của nhánh `main`.
 
 > Yêu cầu Unity 2020.3 trở lên.
 
@@ -32,12 +32,14 @@ Khóa phiên bản theo tag: thêm `#v1.0.0` vào cuối URL.
 Cách 1 – bằng code (gọi sớm nhất có thể, ví dụ trong scene đầu tiên):
 
 ```csharp
-PhaiBay.Initialize("pb_xxxxxxxx", "https://analytics.your-domain.com");
+PhaiBay.Initialize("com.company.game", "https://analytics.your-domain.com");
 ```
 
-Cách 2 – tự động: **Assets › Create › PhaiBay › Settings**, đặt tên `PhaiBaySettings`, để trong thư mục `Resources`, điền `apiKey` + `serverUrl`. SDK tự khởi tạo trước khi load scene đầu tiên.
+Cách 2 – tự động (khuyên dùng): menu **PhaiBay › Settings** mở cửa sổ quản lý ScriptableObject `Assets/Resources/PhaiBaySettings.asset` (bấm **Tạo Settings** nếu chưa có). Điền **App Key** + **Server URL**, bấm **Kiểm tra kết nối & App Key** để thử. SDK tự khởi tạo trước khi load scene đầu tiên.
 
-API key lấy trong dashboard (tab **Apps**) hoặc gọi `POST /api/apps`.
+**App Key** là định danh app đặt lúc tạo app trong dashboard (Trang chủ › **+ Tạo app**), thường là package name / bundle id (vd `com.company.game`), hoặc để server tự sinh. Key **không đổi được** sau khi tạo; xem lại ở tab **Tích hợp SDK** của app.
+
+Hỗ trợ **Enter Play Mode Options** với *Reload Domain* tắt: mọi static được reset ở đầu mỗi lần Play.
 
 ## Sử dụng
 
@@ -77,7 +79,9 @@ Hằng số tên event/param thường dùng: `PhaiBay.Events.LevelStart`, `Phai
 - Tối đa 25 param / event; string param ≤ 100 ký tự; user property ≤ 25 cái, value ≤ 36 ký tự.
 - Giá trị param: `string`, `int/long`, `float/double`, `bool` (lưu thành 1/0).
 
-### Event tự động
+### Event tự động (tắt mặc định)
+
+SDK mặc định chỉ gửi các event bạn tự `LogEvent`. Bật **Auto Track Events** trong Settings nếu muốn thêm:
 
 | Event | Khi nào |
 |---|---|
@@ -94,11 +98,11 @@ Hằng số tên event/param thường dùng: `PhaiBay.Events.LevelStart`, `Phai
 
 ## Test bằng project này
 
-1. Chạy server (xem PhaiBay-Server), tạo app trong dashboard để lấy API key.
+1. Chạy server (xem PhaiBay-Server), tạo app trong dashboard để lấy App Key.
 2. Mở project bằng Unity 2022.3, mở `Assets/PhaiBayDemo/PhaiBayDemo.unity`, bấm Play.
-3. Điền Server URL + API key › **Initialize**, bấm các nút để bắn event.
+3. Điền Server URL + App Key › **Initialize**, bấm các nút để bắn event.
 4. Xem event realtime trong dashboard tab **DebugView**.
 
 ## Phát hành phiên bản
 
-Tăng `version` trong `Assets/PhaiBaySDK/package.json`, commit, rồi `git tag v1.0.1 && git push --tags`.
+Khi SDK chạy ổn định: tăng `version` trong `Assets/PhaiBaySDK/package.json`, commit, rồi `git tag vX.Y.Z && git push --tags`.
