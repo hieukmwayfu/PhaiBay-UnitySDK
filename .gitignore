@@ -42,3 +42,7 @@ crashlytics-build.properties
 # signing keys
 *.keystore
 *.jks
+
+# local SDK config (real app key + server URL): create via PhaiBay > Settings
+Assets/Resources/PhaiBaySettings.asset
+Assets/Resources/PhaiBaySettings.asset.meta
