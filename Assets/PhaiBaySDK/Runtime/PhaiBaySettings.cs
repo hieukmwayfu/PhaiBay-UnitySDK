@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 /// <summary>
-/// SDK configuration. Open it with the menu <b>PhaiBay › Settings</b> (creates
+/// SDK configuration. Open it with the menu <b>PhaiBay > Settings</b> (creates
 /// Assets/Resources/PhaiBaySettings.asset). When it lives in a Resources folder the SDK
 /// initializes itself before the first scene loads.
 /// </summary>

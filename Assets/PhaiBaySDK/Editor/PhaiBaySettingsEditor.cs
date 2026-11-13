@@ -54,39 +54,39 @@ namespace PhaiBayEditor
             var s = (PhaiBaySettings)target;
             serializedObject.Update();
 
-            EditorGUILayout.LabelField("Kết nối", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Connection", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("appKey"), new GUIContent("App Key"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("serverUrl"), new GUIContent("Server URL"));
 
             var key = (s.appKey ?? "").Trim();
             var url = (s.serverUrl ?? "").Trim();
             if (key.Length == 0)
-                EditorGUILayout.HelpBox("Nhập App Key của app (Dashboard › chọn app › Tích hợp SDK).", MessageType.Warning);
+                EditorGUILayout.HelpBox("Enter the App Key of your app (Dashboard > select app > SDK setup).", MessageType.Warning);
             else if (!AppKeyRe.IsMatch(key))
-                EditorGUILayout.HelpBox("App Key không hợp lệ: 3–100 ký tự, chữ/số/'.'/'_'/'-' (vd: com.company.game).", MessageType.Error);
+                EditorGUILayout.HelpBox("Invalid App Key: 3-100 characters, letters, digits, '.', '_' or '-' (e.g. com.company.game).", MessageType.Error);
             if (url.Length == 0)
-                EditorGUILayout.HelpBox("Nhập Server URL (vd: https://analytics.your-domain.com).", MessageType.Warning);
+                EditorGUILayout.HelpBox("Enter the Server URL (e.g. https://analytics.your-domain.com).", MessageType.Warning);
             else if (!url.StartsWith("https://") && !url.StartsWith("http://"))
-                EditorGUILayout.HelpBox("Server URL phải bắt đầu bằng https:// hoặc http://", MessageType.Error);
+                EditorGUILayout.HelpBox("Server URL must start with https:// or http://", MessageType.Error);
             else if (url.StartsWith("http://") && !url.Contains("localhost") && !url.Contains("127.0.0.1"))
-                EditorGUILayout.HelpBox("HTTP thường bị chặn trên Android/iOS. Nên dùng HTTPS (hoặc bật 'Allow downloads over HTTP' trong Player Settings).", MessageType.Info);
+                EditorGUILayout.HelpBox("Plain HTTP is usually blocked on Android/iOS. Use HTTPS (or enable 'Allow downloads over HTTP' in Player Settings).", MessageType.Info);
 
             using (new EditorGUI.DisabledScope(_test != null || key.Length == 0 || url.Length == 0))
             {
-                if (GUILayout.Button(_test != null ? "Đang kiểm tra…" : "Kiểm tra kết nối & App Key"))
+                if (GUILayout.Button(_test != null ? "Testing..." : "Test Connection & App Key"))
                     StartTest(url, key);
             }
             if (!string.IsNullOrEmpty(_testResult)) EditorGUILayout.HelpBox(_testResult, _testType);
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Hành vi", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Behaviour", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("autoInitialize"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("autoTrackEvents"), new GUIContent("Auto Track Events"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sendInEditor"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("debugLog"));
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Gửi dữ liệu", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Upload", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("flushIntervalSeconds"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("flushAtCount"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("maxBatchSize"));
@@ -97,7 +97,7 @@ namespace PhaiBayEditor
 
             var path = AssetDatabase.GetAssetPath(s);
             if (!string.IsNullOrEmpty(path) && !SettingsLocator.IsLoadable(path))
-                EditorGUILayout.HelpBox($"SDK chỉ tự khởi tạo với file Resources/{PhaiBaySettings.ResourceName}.asset. File này đang ở: {path}", MessageType.Warning);
+                EditorGUILayout.HelpBox($"The SDK only auto-initializes from Resources/{PhaiBaySettings.ResourceName}.asset. This asset is at: {path}", MessageType.Warning);
         }
 
         void StartTest(string url, string key)
@@ -123,10 +123,10 @@ namespace PhaiBayEditor
             if (!_test.isDone) return;
             EditorApplication.update -= PollTest;
             var code = _test.responseCode;
-            if (code == 200) { _testResult = "OK — server nhận app key này."; _testType = MessageType.Info; }
-            else if (code == 401) { _testResult = "Server không biết App Key này. Kiểm tra lại key trong dashboard."; _testType = MessageType.Error; }
-            else if (code == 0) { _testResult = "Không kết nối được server: " + _test.error; _testType = MessageType.Error; }
-            else { _testResult = $"Lỗi {code}: {_test.downloadHandler.text}"; _testType = MessageType.Warning; }
+            if (code == 200) { _testResult = "OK - the server accepts this App Key."; _testType = MessageType.Info; }
+            else if (code == 401) { _testResult = "Unknown App Key. Check the key in the dashboard."; _testType = MessageType.Error; }
+            else if (code == 0) { _testResult = "Could not reach the server: " + _test.error; _testType = MessageType.Error; }
+            else { _testResult = $"Error {code}: {_test.downloadHandler.text}"; _testType = MessageType.Warning; }
             _test.Dispose();
             _test = null;
             Repaint();
@@ -140,7 +140,7 @@ namespace PhaiBayEditor
         }
     }
 
-    /// <summary>Menu PhaiBay › Settings: one place to edit the SDK settings asset.</summary>
+    /// <summary>Menu PhaiBay > Settings: one place to edit the SDK settings asset.</summary>
     public class PhaiBaySettingsWindow : EditorWindow
     {
         PhaiBaySettings _settings;
@@ -188,15 +188,15 @@ namespace PhaiBayEditor
 
             if (_settings == null)
             {
-                EditorGUILayout.HelpBox("Chưa có file settings. Tạo tại " + SettingsLocator.DefaultPath + " để SDK tự khởi tạo khi chạy game.", MessageType.Info);
-                if (GUILayout.Button("Tạo Settings", GUILayout.Height(28))) { SettingsLocator.Create(); Refresh(); }
+                EditorGUILayout.HelpBox("No settings asset yet. Create one at " + SettingsLocator.DefaultPath + " so the SDK initializes automatically on startup.", MessageType.Info);
+                if (GUILayout.Button("Create Settings", GUILayout.Height(28))) { SettingsLocator.Create(); Refresh(); }
                 return;
             }
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.ObjectField(_settings, typeof(PhaiBaySettings), false);
-                if (GUILayout.Button("Chọn", GUILayout.Width(60))) { Selection.activeObject = _settings; EditorGUIUtility.PingObject(_settings); }
+                if (GUILayout.Button("Select", GUILayout.Width(60))) { Selection.activeObject = _settings; EditorGUIUtility.PingObject(_settings); }
             }
             EditorGUILayout.Space();
             _scroll = EditorGUILayout.BeginScrollView(_scroll);

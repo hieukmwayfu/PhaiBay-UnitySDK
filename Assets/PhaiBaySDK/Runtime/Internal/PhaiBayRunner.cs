@@ -203,7 +203,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                         wait = Mathf.Max(wait, raSec);
                     if (code == 401)
                     {
-                        Debug.LogError("[PhaiBay] unknown app key - check PhaiBaySettings.appKey (Dashboard > app > Tích hợp SDK)");
+                        Debug.LogError("[PhaiBay] unknown app key - check PhaiBaySettings.appKey (Dashboard > select app > SDK setup)");
                         wait = MaxBackoff;
                     }
                     _nextAllowedSend = Time.realtimeSinceStartup + wait;
