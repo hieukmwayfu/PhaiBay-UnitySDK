@@ -1,0 +1,9 @@
+{
+  "name": "com.phaibay.analytics",
+  "displayName": "PhaiBay Analytics",
+  "version": "1.0.0",
+  "unity": "2020.3",
+  "description": "Lightweight self-hosted analytics SDK (Firebase-like LogEvent API) for the PhaiBay server.",
+  "author": { "name": "PhaiBay" },
+  "keywords": ["analytics", "events", "tracking"]
+}
