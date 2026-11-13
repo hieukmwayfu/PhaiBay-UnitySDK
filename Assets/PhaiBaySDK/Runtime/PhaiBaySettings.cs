@@ -21,7 +21,7 @@ public class PhaiBaySettings : ScriptableObject
     [Tooltip("Initialize automatically on startup (RuntimeInitializeOnLoadMethod)")]
     public bool autoInitialize = true;
 
-    [Tooltip("Also send automatic events: first_open, session_start, user_engagement. Off = only the events you log yourself.")]
+    [Tooltip("Also send automatic events: first_open, session_start. Off = only the events you log yourself.")]
     public bool autoTrackEvents = false;
 
     [Tooltip("Seconds between uploads")]

@@ -51,6 +51,18 @@ public static partial class PhaiBay
 
     public static bool IsInitialized => Initialized;
 
+    /// <summary>Result of the last upload attempt (for debugging), e.g. "OK 200: sent 12 events". Null before the first upload.</summary>
+    public static string LastUploadStatus { get { lock (Lock) return _lastUploadStatus; } }
+    static string _lastUploadStatus;
+
+    /// <summary>Log every event / upload to the Unity console (overrides PhaiBaySettings.debugLog at runtime).</summary>
+    public static bool DebugLog
+    {
+        get => _debugOverride ?? (Settings != null && Settings.debugLog);
+        set => _debugOverride = value; // not written to the asset (would persist in the Editor)
+    }
+    static bool? _debugOverride;
+
     /// <summary>Events waiting to be uploaded.</summary>
     public static int PendingEventCount => QueueCount;
 
@@ -378,6 +390,7 @@ public static partial class PhaiBay
             _userPropsJson = null;
             _sessionId = null;
             _uid = null;
+            _lastUploadStatus = null;
         }
         // every static must be reset here: with "Enter Play Mode Options" (domain reload off)
         // static fields survive between play sessions
@@ -386,15 +399,22 @@ public static partial class PhaiBay
         AppKey = null;
         Endpoint = null;
         _enabled = true;
+        _debugOverride = null;
         _appVersion = null;
         AppInstanceId = null;
+    }
+
+    internal static void SetUploadStatus(string s)
+    {
+        s = Clip(s, 300);
+        lock (Lock) _lastUploadStatus = s;
     }
 
     internal static string Clip(string s, int n) => s == null ? "" : (s.Length <= n ? s : s.Substring(0, n));
 
     internal static void Log(string msg)
     {
-        if (Settings != null && Settings.debugLog) Debug.Log("[PhaiBay] " + msg);
+        if (DebugLog) Debug.Log("[PhaiBay] " + msg);
     }
 
     internal static void Warn(string msg) => Debug.LogWarning("[PhaiBay] " + msg);

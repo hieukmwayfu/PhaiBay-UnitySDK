@@ -10,7 +10,7 @@ using UnityEngine.Networking;
 
 /// <summary>
 /// Hidden DontDestroyOnLoad object: uploads batches, retries with backoff, persists the queue,
-/// tracks sessions (session_start) and foreground time (user_engagement).
+/// tracks sessions (session_start).
 /// </summary>
 [AddComponentMenu("")]
 internal sealed class PhaiBayRunner : MonoBehaviour
@@ -28,7 +28,6 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     List<string> _pendingBatch; // failed batch kept with the same batch_id so the server can dedupe the retry
     string _pendingBatchId;
 
-    float _foregroundStart;
     DateTime _backgroundAt = DateTime.MinValue;
 
     static string QueuePath => Path.Combine(Application.persistentDataPath, QueueFile);
@@ -68,7 +67,6 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     {
         PhaiBay.Device.Init();
         RestoreQueue();
-        _foregroundStart = Time.realtimeSinceStartup;
     }
 
     void Update()
@@ -91,14 +89,12 @@ internal sealed class PhaiBayRunner : MonoBehaviour
         if (!PhaiBay.Initialized) return;
         if (paused)
         {
-            LogEngagement();
             _backgroundAt = DateTime.UtcNow;
             PersistQueue();
             if (!_sending) StartCoroutine(Send()); // best effort before the OS suspends us
         }
         else
         {
-            _foregroundStart = Time.realtimeSinceStartup;
             if (_backgroundAt != DateTime.MinValue &&
                 (DateTime.UtcNow - _backgroundAt).TotalSeconds >= PhaiBay.Settings.sessionTimeoutSeconds)
                 PhaiBay.StartSession();
@@ -110,17 +106,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     void OnApplicationQuit()
     {
         if (!PhaiBay.Initialized) return;
-        LogEngagement();
         PersistQueue();
-    }
-
-    void LogEngagement()
-    {
-        long ms = (long)((Time.realtimeSinceStartup - _foregroundStart) * 1000f);
-        _foregroundStart = Time.realtimeSinceStartup;
-        if (ms >= 1000 && PhaiBay.Settings != null && PhaiBay.Settings.autoTrackEvents)
-            PhaiBay.LogEventInternal(PhaiBay.Events.UserEngagement,
-                new[] { new PhaiBay.Parameter(PhaiBay.Params.EngagementTimeMsec, ms) });
     }
 
     IEnumerator Send()
@@ -183,12 +169,14 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                     PhaiBay.RemoveSent(batch);
                     _pendingBatch = null;
                     _backoff = MinBackoff;
+                    PhaiBay.SetUploadStatus("OK " + code + ": sent " + batch.Count + " events");
                     PhaiBay.Log("sent " + batch.Count + " events (" + body.Length + " bytes): " + req.downloadHandler.text);
                     if (PhaiBay.QueueCount >= PhaiBay.Settings.flushAtCount) _flushRequested = true;
                 }
                 else if (!netError && (code == 400 || code == 413))
                 {
                     // malformed / too large: retrying won't help, drop it so the queue keeps moving
+                    PhaiBay.SetUploadStatus("Rejected " + code + ": " + req.downloadHandler.text);
                     PhaiBay.Warn("server rejected batch (" + code + "): " + req.downloadHandler.text + " - dropped " + batch.Count + " events");
                     PhaiBay.RemoveSent(batch);
                     _pendingBatch = null;
@@ -206,6 +194,8 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                         Debug.LogError("[PhaiBay] unknown app key - check PhaiBaySettings.appKey (Dashboard > select app > SDK setup)");
                         wait = MaxBackoff;
                     }
+                    PhaiBay.SetUploadStatus((netError ? "Network error: " + req.error : "HTTP " + code + ": " + req.downloadHandler.text)
+                        + " (retry in " + wait.ToString("0") + "s)");
                     _nextAllowedSend = Time.realtimeSinceStartup + wait;
                     _backoff = Mathf.Min(_backoff * 2f, MaxBackoff);
                     PhaiBay.Log("upload failed (" + code + " " + req.error + "), retry in " + wait.ToString("0") + "s");

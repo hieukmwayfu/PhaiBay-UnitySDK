@@ -19,7 +19,6 @@ public static partial class PhaiBay
     {
         public const string FirstOpen = "first_open";             // auto (autoTrackEvents)
         public const string SessionStart = "session_start";       // auto (autoTrackEvents)
-        public const string UserEngagement = "user_engagement";   // auto (autoTrackEvents)
         public const string LevelStart = "level_start";
         public const string LevelEnd = "level_end";
         public const string LevelUp = "level_up";
@@ -43,6 +42,5 @@ public static partial class PhaiBay
         public const string AdPlatform = "ad_platform";
         public const string AdFormat = "ad_format";
         public const string AdUnitName = "ad_unit_name";
-        public const string EngagementTimeMsec = "engagement_time_msec";
     }
 }

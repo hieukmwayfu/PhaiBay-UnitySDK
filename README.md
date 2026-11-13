@@ -87,7 +87,6 @@ SDK mặc định chỉ gửi các event bạn tự `LogEvent`. Bật **Auto Tra
 |---|---|
 | `first_open` | Lần đầu mở app |
 | `session_start` | Mở app, hoặc quay lại sau > 30 phút ở background |
-| `user_engagement` | Khi app vào background / thoát, param `engagement_time_msec` |
 
 ### Cơ chế gửi
 
