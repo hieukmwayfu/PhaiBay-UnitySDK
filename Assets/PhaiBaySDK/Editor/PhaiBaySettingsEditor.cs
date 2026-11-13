@@ -83,6 +83,11 @@ namespace PhaiBayEditor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("autoInitialize"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("autoTrackEvents"), new GUIContent("Auto Track Events"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("sendInEditor"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("realDataOnlyOnAndroid"), new GUIContent("Real Data Only On Android"));
+            if (s.realDataOnlyOnAndroid)
+                EditorGUILayout.HelpBox("Editor / Windows / other platforms: dry run (server validates, stores nothing). Android builds: real data.", MessageType.None);
+            else
+                EditorGUILayout.HelpBox("Every platform records real data, including the Editor.", MessageType.Warning);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("debugLog"));
 
             EditorGUILayout.Space();

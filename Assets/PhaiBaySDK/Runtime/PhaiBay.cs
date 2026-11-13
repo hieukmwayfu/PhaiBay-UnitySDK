@@ -33,6 +33,7 @@ public static partial class PhaiBay
     static readonly List<string> Queue = new List<string>(); // serialized events (JSON objects)
     static readonly Dictionary<string, object> UserProps = new Dictionary<string, object>();
     static string _userPropsJson; // cached snapshot, null = dirty
+    static int _queueVersion; // bumped on every queue change, so the runner knows when to re-persist
 
     internal static PhaiBaySettings Settings;
     internal static string AppKey;
@@ -50,6 +51,12 @@ public static partial class PhaiBay
     public static string SessionId { get { lock (Lock) return _sessionId; } }
 
     public static bool IsInitialized => Initialized;
+
+    /// <summary>
+    /// True when events are only validated by the server, never stored (Editor / desktop test runs).
+    /// See PhaiBaySettings.realDataOnlyOnAndroid.
+    /// </summary>
+    public static bool IsDryRun => Settings != null && Settings.realDataOnlyOnAndroid && Application.platform != RuntimePlatform.Android;
 
     /// <summary>Result of the last upload attempt (for debugging), e.g. "OK 200: sent 12 events". Null before the first upload.</summary>
     public static string LastUploadStatus { get { lock (Lock) return _lastUploadStatus; } }
@@ -114,6 +121,10 @@ public static partial class PhaiBay
 
         Initialized = true;
         PhaiBayRunner.Create(); // loads persisted queue, uploads, tracks lifecycle
+
+        if (IsDryRun)
+            Debug.Log("[PhaiBay] TEST MODE on " + Application.platform + ": events are validated by the server but NOT stored. " +
+                      "Only Android builds record real data (PhaiBaySettings.realDataOnlyOnAndroid).");
 
         if (firstOpen && settings.autoTrackEvents) LogEventInternal(Events.FirstOpen, null);
         StartSession();
@@ -192,7 +203,7 @@ public static partial class PhaiBay
     {
         _enabled = enabled;
         PlayerPrefs.SetInt("phaibay_enabled", enabled ? 1 : 0);
-        if (!enabled) lock (Lock) Queue.Clear();
+        if (!enabled) lock (Lock) { Queue.Clear(); _queueVersion++; }
     }
 
     /// <summary>Upload queued events now.</summary>
@@ -204,6 +215,7 @@ public static partial class PhaiBay
         lock (Lock)
         {
             Queue.Clear();
+            _queueVersion++;
             UserProps.Clear();
             _userPropsJson = null;
             _uid = "";
@@ -294,6 +306,7 @@ public static partial class PhaiBay
             int max = Settings != null ? Settings.maxQueueSize : 5000;
             if (Queue.Count >= max) Queue.RemoveRange(0, Queue.Count - max + 1); // drop oldest
             Queue.Add(sb.ToString());
+            _queueVersion++;
         }
         Log("event " + sb);
         PhaiBayRunner.NotifyEnqueued();
@@ -336,6 +349,10 @@ public static partial class PhaiBay
 
     // ---- queue access for the runner ----
     internal static int QueueCount { get { lock (Lock) return Queue.Count; } }
+    internal static int QueueVersion { get { lock (Lock) return _queueVersion; } }
+
+    /// <summary>Queue copy + its version, taken atomically (for persisting).</summary>
+    internal static List<string> Snapshot(out int version) { lock (Lock) { version = _queueVersion; return new List<string>(Queue); } }
 
     internal static List<string> PeekBatch(int max)
     {
@@ -350,6 +367,7 @@ public static partial class PhaiBay
             int n = 0;
             while (n < sent.Count && n < Queue.Count && ReferenceEquals(Queue[n], sent[n])) n++;
             Queue.RemoveRange(0, n);
+            if (n > 0) _queueVersion++;
         }
     }
 
@@ -361,6 +379,7 @@ public static partial class PhaiBay
         lock (Lock)
         {
             Queue.InsertRange(0, restored);
+            _queueVersion++;
             int max = Settings != null ? Settings.maxQueueSize : 5000;
             if (Queue.Count > max) Queue.RemoveRange(0, Queue.Count - max);
         }
@@ -386,6 +405,7 @@ public static partial class PhaiBay
         lock (Lock)
         {
             Queue.Clear();
+            _queueVersion++;
             UserProps.Clear();
             _userPropsJson = null;
             _sessionId = null;

@@ -11,6 +11,13 @@ using UnityEngine.Networking;
 /// <summary>
 /// Hidden DontDestroyOnLoad object: uploads batches, retries with backoff, persists the queue,
 /// tracks sessions (session_start).
+///
+/// Offline / failure handling (like Firebase): events stay queued in memory and are saved to
+/// persistentDataPath every few seconds when the queue changed, right after a failed upload and on
+/// pause / quit, so a crash or kill loses at most a few seconds of events. A failed batch is retried
+/// with the same batch_id (the server de-duplicates it) using exponential backoff (5 s -> 5 min,
+/// Retry-After honored). While the device has no network nothing is attempted; uploads resume as
+/// soon as it comes back, and on the next launch the saved queue is restored and sent.
 /// </summary>
 [AddComponentMenu("")]
 internal sealed class PhaiBayRunner : MonoBehaviour
@@ -19,6 +26,9 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     static volatile bool _flushRequested;
 
     const float MinBackoff = 5f, MaxBackoff = 300f;
+    const float PersistEvery = 10f; // seconds between background saves of a changed queue
+    static readonly object FileLock = new object();
+    static int _writtenVersion = -1; // queue version last saved to disk (guarded by FileLock)
     const string QueueFile = "phaibay_queue.jsonl";
 
     float _sinceFlush;
@@ -29,6 +39,9 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     string _pendingBatchId;
 
     DateTime _backgroundAt = DateTime.MinValue;
+    float _sincePersist;
+    int _persistedVersion = -1;
+    bool _offline;
 
     static string QueuePath => Path.Combine(Application.persistentDataPath, QueueFile);
 
@@ -37,6 +50,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     {
         _instance = null;
         _flushRequested = false;
+        lock (FileLock) _writtenVersion = -1;
         PhaiBay.ResetForPlayMode();
     }
 
@@ -60,7 +74,11 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
     internal static void DeletePersistedQueue()
     {
-        try { if (File.Exists(QueuePath)) File.Delete(QueuePath); } catch (Exception) { }
+        lock (FileLock)
+        {
+            try { if (File.Exists(QueuePath)) File.Delete(QueuePath); } catch (Exception) { }
+            _writtenVersion = -1;
+        }
     }
 
     void Awake()
@@ -72,6 +90,35 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     void Update()
     {
         _sinceFlush += Time.unscaledDeltaTime;
+
+        // save a changed queue in the background so a crash / kill does not lose it
+        _sincePersist += Time.unscaledDeltaTime;
+        if (_sincePersist >= PersistEvery)
+        {
+            _sincePersist = 0;
+            if (PhaiBay.QueueVersion != _persistedVersion) PersistQueueAsync();
+        }
+
+        // no network: keep everything queued, do not burn retries; resume right away when it is back
+        bool offline = Application.internetReachability == NetworkReachability.NotReachable;
+        if (offline != _offline)
+        {
+            _offline = offline;
+            if (offline)
+            {
+                PhaiBay.SetUploadStatus("Offline - " + PhaiBay.QueueCount + " events kept, will send when online");
+                PersistQueueAsync();
+            }
+            else
+            {
+                _nextAllowedSend = 0;
+                _backoff = MinBackoff;
+                _flushRequested = true;
+                PhaiBay.Log("network back, uploading queued events");
+            }
+        }
+        if (offline) return;
+
         if (_sending || Time.realtimeSinceStartup < _nextAllowedSend) return;
         var s = PhaiBay.Settings;
         int count = PhaiBay.QueueCount;
@@ -157,6 +204,8 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.SetRequestHeader("Content-Type", "application/json");
                 req.SetRequestHeader("X-App-Key", PhaiBay.AppKey);
+                bool dry = PhaiBay.IsDryRun;
+                if (dry) req.SetRequestHeader("X-PB-Dry-Run", "1"); // server validates only, stores nothing
                 if (gz) req.SetRequestHeader("Content-Encoding", "gzip");
                 req.timeout = 20;
                 yield return req.SendWebRequest();
@@ -169,7 +218,9 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                     PhaiBay.RemoveSent(batch);
                     _pendingBatch = null;
                     _backoff = MinBackoff;
-                    PhaiBay.SetUploadStatus("OK " + code + ": sent " + batch.Count + " events");
+                    PhaiBay.SetUploadStatus(dry
+                        ? "TEST OK " + code + ": " + batch.Count + " events valid (dry run, not stored)"
+                        : "OK " + code + ": sent " + batch.Count + " events");
                     PhaiBay.Log("sent " + batch.Count + " events (" + body.Length + " bytes): " + req.downloadHandler.text);
                     if (PhaiBay.QueueCount >= PhaiBay.Settings.flushAtCount) _flushRequested = true;
                 }
@@ -197,6 +248,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                     PhaiBay.SetUploadStatus((netError ? "Network error: " + req.error : "HTTP " + code + ": " + req.downloadHandler.text)
                         + " (retry in " + wait.ToString("0") + "s)");
                     _nextAllowedSend = Time.realtimeSinceStartup + wait;
+                    PersistQueueAsync(); // keep the unsent batch safe while we wait
                     _backoff = Mathf.Min(_backoff * 2f, MaxBackoff);
                     PhaiBay.Log("upload failed (" + code + " " + req.error + "), retry in " + wait.ToString("0") + "s");
                 }
@@ -222,15 +274,42 @@ internal sealed class PhaiBayRunner : MonoBehaviour
         catch (Exception) { return null; } // platform without zlib -> send uncompressed
     }
 
-    static void PersistQueue()
+    /// <summary>Synchronous save (pause / quit: the OS may kill the process right after).</summary>
+    void PersistQueue()
     {
-        try
+        var snap = PhaiBay.Snapshot(out int version);
+        _persistedVersion = version;
+        WriteQueueFile(snap, version);
+    }
+
+    /// <summary>Snapshot on the main thread, write the file on a worker thread (no frame hitch).</summary>
+    void PersistQueueAsync()
+    {
+        var snap = PhaiBay.Snapshot(out int version);
+        _persistedVersion = version;
+        System.Threading.ThreadPool.QueueUserWorkItem(_ => WriteQueueFile(snap, version));
+    }
+
+    static void WriteQueueFile(List<string> snap, int version)
+    {
+        lock (FileLock)
         {
-            var snap = PhaiBay.Snapshot();
-            if (snap.Count == 0) { DeletePersistedQueue(); return; }
-            File.WriteAllLines(QueuePath, snap.ToArray(), new UTF8Encoding(false));
+            if (version <= _writtenVersion) return; // a newer snapshot was already written
+            try
+            {
+                if (snap.Count == 0) { if (File.Exists(QueuePath)) File.Delete(QueuePath); }
+                else
+                {
+                    // write + replace: a crash mid-write never corrupts the saved queue
+                    var tmp = QueuePath + ".tmp";
+                    File.WriteAllLines(tmp, snap.ToArray(), new UTF8Encoding(false));
+                    if (File.Exists(QueuePath)) File.Delete(QueuePath);
+                    File.Move(tmp, QueuePath);
+                }
+                _writtenVersion = version;
+            }
+            catch (Exception e) { PhaiBay.Warn("persist queue failed: " + e.Message); }
         }
-        catch (Exception e) { PhaiBay.Warn("persist queue failed: " + e.Message); }
     }
 
     static void RestoreQueue()

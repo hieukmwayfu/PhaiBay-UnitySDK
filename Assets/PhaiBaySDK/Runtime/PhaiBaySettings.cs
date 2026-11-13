@@ -42,6 +42,10 @@ public class PhaiBaySettings : ScriptableObject
     [Tooltip("Send events while running in the Unity Editor")]
     public bool sendInEditor = true;
 
+    [Tooltip("Only Android builds record real data. In the Editor and other platforms (Windows, Mac, Linux...) " +
+             "events are sent as a dry run: the server validates the app key, connection and payload but stores nothing.")]
+    public bool realDataOnlyOnAndroid = true;
+
     [Tooltip("Log every event / upload to the Unity console")]
     public bool debugLog = false;
 }

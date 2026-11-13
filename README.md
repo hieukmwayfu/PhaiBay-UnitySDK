@@ -41,6 +41,14 @@ Cách 2 – tự động (khuyên dùng): menu **PhaiBay › Settings** mở c�
 
 Hỗ trợ **Enter Play Mode Options** với *Reload Domain* tắt: mọi static được reset ở đầu mỗi lần Play.
 
+### Chế độ test (dry run)
+
+Mặc định (`realDataOnlyOnAndroid = true`) **chỉ bản build Android ghi dữ liệu thật**. Trong Unity Editor và bản build Windows / Mac / Linux, SDK gửi event kèm header `X-PB-Dry-Run: 1`: server vẫn kiểm tra App Key, kết nối, rate limit và định dạng event, trả về số event hợp lệ nhưng **không ghi DB**, nên dashboard không bị lẫn data test.
+
+- `PhaiBay.IsDryRun` cho biết đang ở chế độ test.
+- `PhaiBay.LastUploadStatus` hiện kết quả lần gửi gần nhất, ví dụ `TEST OK 200: 12 events valid (dry run, not stored)`.
+- Tắt `Real Data Only On Android` trong Settings nếu muốn mọi nền tảng đều ghi thật.
+
 ## Sử dụng
 
 ```csharp
@@ -91,8 +99,11 @@ SDK mặc định chỉ gửi các event bạn tự `LogEvent`. Bật **Auto Tra
 ### Cơ chế gửi
 
 - Event được xếp hàng trong RAM, gửi theo batch (gzip) mỗi 15s hoặc khi đủ 50 event.
-- Mất mạng → giữ lại, retry với backoff (5s → 5 phút). Hàng đợi được ghi xuống `persistentDataPath` khi app pause/quit và gửi lại lần mở sau.
-- Mỗi batch có `batch_id` → server bỏ qua bản gửi trùng khi retry.
+- **Lỗi mạng / server lỗi (5xx, 429, 503)** → batch được giữ nguyên, retry với backoff 5s → 5 phút (theo `Retry-After` nếu server gửi). Batch gửi lại giữ **cùng `batch_id`** → server bỏ bản trùng, không đếm 2 lần.
+- **Không có mạng** (`Application.internetReachability`) → không thử gửi, không tốn lượt retry; có mạng lại là gửi ngay.
+- **Lưu tạm xuống máy**: hàng đợi được ghi vào `persistentDataPath/phaibay_queue.jsonl` mỗi 10s khi có thay đổi (ghi ở thread nền), ngay sau mỗi lần gửi lỗi, và khi app pause/quit. App crash / bị kill chỉ mất tối đa vài giây event; lần mở sau hàng đợi được khôi phục và gửi tiếp. File ghi kiểu tạm-rồi-đổi-tên nên không bao giờ bị hỏng giữa chừng.
+- Tối đa `maxQueueSize` (mặc định 5000) event chờ trên máy; vượt thì bỏ event cũ nhất.
+- Server trả 400/413 (dữ liệu sai / quá lớn) → bỏ batch đó, vì gửi lại cũng không được.
 - `LogEvent` gọi được từ mọi thread.
 
 ## Test bằng project này

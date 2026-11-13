@@ -115,6 +115,10 @@ public class PhaiBayDemo : MonoBehaviour
         if (dbg != cur) { debugLog = dbg; PhaiBay.DebugLog = dbg; }
 
         GUILayout.Space(8);
+        GUILayout.Label(PhaiBay.IsInitialized
+            ? (PhaiBay.IsDryRun ? "<color=#ffd166><b>TEST MODE</b> - validated by server, not stored (Android only = real data)</color>"
+                                : "<color=#6bdc8b><b>LIVE</b> - events are recorded</color>")
+            : "Not initialized", new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true });
         GUILayout.Label($"Instance id: {PhaiBay.AppInstanceId}\nSession: {PhaiBay.SessionId}\nQueued: {PhaiBay.PendingEventCount}\n" +
                         $"Last upload: {PhaiBay.LastUploadStatus ?? "-"}\n{_status}");
 
