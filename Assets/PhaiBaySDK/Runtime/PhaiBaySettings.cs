@@ -31,7 +31,7 @@ public class PhaiBaySettings : ScriptableObject
     public bool autoTrackEvents = false;
 
     [Tooltip("Seconds between uploads")]
-    [Range(2, 300)] public float flushIntervalSeconds = 15f;
+    [Range(2, 300)] public float flushIntervalSeconds = 5f;
 
     [Tooltip("Upload immediately when this many events are queued")]
     [Range(1, 500)] public int flushAtCount = 50;

@@ -24,6 +24,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 {
     static PhaiBayRunner _instance;
     static volatile bool _flushRequested;
+    static volatile bool _queueNeedsPersist;
 
     const float MinBackoff = 5f, MaxBackoff = 300f;
     const float PersistEvery = 10f; // seconds between background saves of a changed queue
@@ -50,6 +51,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     {
         _instance = null;
         _flushRequested = false;
+        _queueNeedsPersist = false;
         lock (FileLock) _writtenVersion = -1;
         PhaiBay.ResetForPlayMode();
     }
@@ -70,7 +72,9 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     }
 
     internal static void RequestFlush() => _flushRequested = true;
-    internal static void NotifyEnqueued() { }
+    // LogEvent is allowed from worker threads. Defer the snapshot/file work to Update,
+    // but start it on the very next frame instead of waiting for the periodic checkpoint.
+    internal static void NotifyEnqueued() => _queueNeedsPersist = true;
 
     internal static void DeletePersistedQueue()
     {
@@ -93,6 +97,11 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
         // save a changed queue in the background so a crash / kill does not lose it
         _sincePersist += Time.unscaledDeltaTime;
+        if (_queueNeedsPersist)
+        {
+            _queueNeedsPersist = false;
+            PersistQueueAsync();
+        }
         if (_sincePersist >= PersistEvery)
         {
             _sincePersist = 0;
@@ -297,14 +306,24 @@ internal sealed class PhaiBayRunner : MonoBehaviour
             if (version <= _writtenVersion) return; // a newer snapshot was already written
             try
             {
-                if (snap.Count == 0) { if (File.Exists(QueuePath)) File.Delete(QueuePath); }
+                if (snap.Count == 0)
+                {
+                    if (File.Exists(QueuePath)) File.Delete(QueuePath);
+                    var backup = QueuePath + ".bak";
+                    if (File.Exists(backup)) File.Delete(backup);
+                }
                 else
                 {
                     // write + replace: a crash mid-write never corrupts the saved queue
                     var tmp = QueuePath + ".tmp";
+                    var backup = QueuePath + ".bak";
                     File.WriteAllLines(tmp, snap.ToArray(), new UTF8Encoding(false));
-                    if (File.Exists(QueuePath)) File.Delete(QueuePath);
+                    // Keep a recoverable copy across replacement; deleting the old file first
+                    // creates a crash window in which neither snapshot exists.
+                    if (File.Exists(backup)) File.Delete(backup);
+                    if (File.Exists(QueuePath)) File.Move(QueuePath, backup);
                     File.Move(tmp, QueuePath);
+                    if (File.Exists(backup)) File.Delete(backup);
                 }
                 _writtenVersion = version;
             }
@@ -316,13 +335,16 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     {
         try
         {
-            if (!File.Exists(QueuePath)) return;
-            var lines = File.ReadAllLines(QueuePath, Encoding.UTF8);
+            var backup = QueuePath + ".bak";
+            var source = File.Exists(QueuePath) ? QueuePath : (File.Exists(backup) ? backup : null);
+            if (source == null) return;
+            var lines = File.ReadAllLines(source, Encoding.UTF8);
             var list = new List<string>(lines.Length);
             foreach (var l in lines)
                 if (l.Length > 2 && l[0] == '{' && l[l.Length - 1] == '}') list.Add(l);
             PhaiBay.PrependRestored(list);
-            File.Delete(QueuePath); // re-written on next pause/quit with whatever is still unsent
+            // Leave the durable snapshot in place until a newer snapshot has been written.
+            // If the app is killed before the first Update, the next launch can still restore it.
             PhaiBay.Log("restored " + list.Count + " queued events");
         }
         catch (Exception e) { PhaiBay.Warn("restore queue failed: " + e.Message); }
