@@ -6,12 +6,11 @@ using UnityEngine;
 /// <summary>
 /// Test UI for the PhaiBay SDK. Open Assets/PhaiBayDemo/PhaiBayDemo.unity and press Play.
 /// If Resources/PhaiBaySettings has an App Key the SDK is already initialized; otherwise fill
-/// Server URL + App Key (Dashboard > select app > SDK setup) and press Initialize.
+/// the App Key (Dashboard > select app > Settings) and press Initialize. The server is fixed.
 /// The log panel shows every Unity log (SDK warnings / upload errors included), also on device builds.
 /// </summary>
 public class PhaiBayDemo : MonoBehaviour
 {
-    public string serverUrl = PhaiBaySettings.DefaultServerUrl;
     public string appKey = "";
     public bool debugLog = true;
     [Tooltip("Lines kept in the on-screen log")]
@@ -32,7 +31,6 @@ public class PhaiBayDemo : MonoBehaviour
 
     void Awake()
     {
-        serverUrl = PlayerPrefs.GetString("demo_server_url", serverUrl);
         appKey = PlayerPrefs.GetString("demo_key", appKey);
     }
 
@@ -97,15 +95,12 @@ public class PhaiBayDemo : MonoBehaviour
         GUILayout.Label("<b><size=18>PhaiBay SDK Demo</size></b>", new GUIStyle(GUI.skin.label) { richText = true });
 
         GUI.enabled = !PhaiBay.IsInitialized;
-        GUILayout.Label("Server URL");
-        serverUrl = GUILayout.TextField(serverUrl);
         GUILayout.Label("App key");
         appKey = GUILayout.TextField(appKey);
         if (GUILayout.Button("Initialize", GUILayout.Height(36)))
         {
-            PlayerPrefs.SetString("demo_server_url", serverUrl);
             PlayerPrefs.SetString("demo_key", appKey);
-            PhaiBay.Initialize(appKey.Trim(), serverUrl.Trim(), debugLog);
+            PhaiBay.Initialize(appKey.Trim(), debugLog);
             _status = PhaiBay.IsInitialized ? "Initialized" : "Init failed - see log";
         }
         GUI.enabled = true;

@@ -83,16 +83,11 @@ public static partial class PhaiBay
             Initialize(s);
     }
 
-    /// <summary>Initialize with an API key and server URL (other options use defaults).</summary>
-    /// <summary>Initialize with the app key, using the default PhaiBay server.</summary>
-    public static void Initialize(string appKey) => Initialize(appKey, null);
-
-    /// <summary>Initialize with an app key and a server URL (null / empty = default server).</summary>
-    public static void Initialize(string appKey, string serverUrl, bool debugLog = false)
+    /// <summary>Initialize with the app key (the server is fixed: PhaiBaySettings.DefaultServerUrl).</summary>
+    public static void Initialize(string appKey, bool debugLog = false)
     {
         var s = ScriptableObject.CreateInstance<PhaiBaySettings>();
         s.appKey = appKey;
-        s.serverUrl = serverUrl;
         s.debugLog = debugLog;
         Initialize(s);
     }
@@ -108,7 +103,7 @@ public static partial class PhaiBay
         }
         Settings = settings;
         AppKey = settings.appKey.Trim();
-        Endpoint = settings.ServerUrlOrDefault.TrimEnd('/') + "/v1/events";
+        Endpoint = settings.ServerUrl.TrimEnd('/') + "/v1/events";
         _appVersion = Application.version;
 
         AppInstanceId = PlayerPrefs.GetString("phaibay_iid", "");
