@@ -11,7 +11,7 @@ using UnityEngine;
 /// </summary>
 public class PhaiBayDemo : MonoBehaviour
 {
-    public string serverUrl = "http://localhost:8080";
+    public string serverUrl = PhaiBaySettings.DefaultServerUrl;
     public string appKey = "";
     public bool debugLog = true;
     [Tooltip("Lines kept in the on-screen log")]
@@ -32,7 +32,7 @@ public class PhaiBayDemo : MonoBehaviour
 
     void Awake()
     {
-        serverUrl = PlayerPrefs.GetString("demo_server", serverUrl);
+        serverUrl = PlayerPrefs.GetString("demo_server_url", serverUrl);
         appKey = PlayerPrefs.GetString("demo_key", appKey);
     }
 
@@ -103,7 +103,7 @@ public class PhaiBayDemo : MonoBehaviour
         appKey = GUILayout.TextField(appKey);
         if (GUILayout.Button("Initialize", GUILayout.Height(36)))
         {
-            PlayerPrefs.SetString("demo_server", serverUrl);
+            PlayerPrefs.SetString("demo_server_url", serverUrl);
             PlayerPrefs.SetString("demo_key", appKey);
             PhaiBay.Initialize(appKey.Trim(), serverUrl.Trim(), debugLog);
             _status = PhaiBay.IsInitialized ? "Initialized" : "Init failed - see log";

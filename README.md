@@ -32,10 +32,11 @@ Hoặc thêm vào `Packages/manifest.json`:
 Cách 1 – bằng code (gọi sớm nhất có thể, ví dụ trong scene đầu tiên):
 
 ```csharp
-PhaiBay.Initialize("com.company.game", "https://analytics.your-domain.com");
+PhaiBay.Initialize("com.company.game");                       // server mặc định
+// PhaiBay.Initialize("com.company.game", "https://khac.example.com");  // server khác
 ```
 
-Cách 2 – tự động (khuyên dùng): menu **PhaiBay › Settings** mở cửa sổ quản lý ScriptableObject `Assets/Resources/PhaiBaySettings.asset` (bấm **Tạo Settings** nếu chưa có). Điền **App Key** + **Server URL**, bấm **Kiểm tra kết nối & App Key** để thử. SDK tự khởi tạo trước khi load scene đầu tiên.
+Cách 2 – tự động (khuyên dùng): menu **PhaiBay › Settings** mở cửa sổ quản lý ScriptableObject `Assets/Resources/PhaiBaySettings.asset` (bấm **Tạo Settings** nếu chưa có). Chỉ cần điền **App Key** (Server URL để trống = server mặc định `PhaiBaySettings.DefaultServerUrl`), bấm **Kiểm tra kết nối & App Key** để thử. SDK tự khởi tạo trước khi load scene đầu tiên.
 
 **App Key** là định danh app đặt lúc tạo app trong dashboard (Trang chủ › **+ Tạo app**), thường là package name / bundle id (vd `com.company.game`), hoặc để server tự sinh. Key **không đổi được** sau khi tạo; xem lại ở tab **Tích hợp SDK** của app.
 
@@ -110,7 +111,7 @@ SDK mặc định chỉ gửi các event bạn tự `LogEvent`. Bật **Auto Tra
 
 1. Chạy server (xem PhaiBay-Server), tạo app trong dashboard để lấy App Key.
 2. Mở project bằng Unity 2022.3, mở `Assets/PhaiBayDemo/PhaiBayDemo.unity`, bấm Play.
-3. Điền Server URL + App Key › **Initialize**, bấm các nút để bắn event.
+3. Điền App Key (Server URL đã điền sẵn server mặc định) › **Initialize**, bấm các nút để bắn event.
 4. Xem event realtime trong dashboard tab **DebugView**.
 
 ## Phát hành phiên bản

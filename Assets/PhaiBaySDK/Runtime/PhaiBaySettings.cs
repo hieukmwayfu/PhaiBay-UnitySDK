@@ -11,12 +11,21 @@ public class PhaiBaySettings : ScriptableObject
 {
     public const string ResourceName = "PhaiBaySettings";
 
+    /// <summary>
+    /// Server used when serverUrl is left empty. Keep this domain stable: shipped game builds keep
+    /// calling it, so moving to another VPS = point this domain's DNS at the new machine.
+    /// </summary>
+    public const string DefaultServerUrl = "https://phaibay.dynv6.net";
+
     [Tooltip("App key chosen when the app was created in the dashboard (e.g. com.company.game). Identifies which app the events belong to.")]
     [FormerlySerializedAs("apiKey")]
     public string appKey = "";
 
-    [Tooltip("Server base URL, e.g. https://analytics.example.com")]
+    [Tooltip("Server base URL. Leave empty to use the default PhaiBay server (PhaiBaySettings.DefaultServerUrl).")]
     public string serverUrl = "";
+
+    /// <summary>serverUrl, or DefaultServerUrl when it is empty.</summary>
+    public string ServerUrlOrDefault => string.IsNullOrWhiteSpace(serverUrl) ? DefaultServerUrl : serverUrl.Trim();
 
     [Tooltip("Initialize automatically on startup (RuntimeInitializeOnLoadMethod)")]
     public bool autoInitialize = true;

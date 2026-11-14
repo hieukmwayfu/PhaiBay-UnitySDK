@@ -8,7 +8,7 @@ using UnityEngine;
 /// <summary>
 /// PhaiBay Analytics - Firebase-like API.
 ///
-///   PhaiBay.Initialize("pb_xxx", "https://analytics.example.com");   // or a PhaiBaySettings asset in Resources
+///   PhaiBay.Initialize("com.company.game");   // default server; or a PhaiBaySettings asset in Resources
 ///   PhaiBay.LogEvent("level_start", "level", 5);
 ///   PhaiBay.LogEvent("level_end", new PhaiBay.Parameter("level", 5), new PhaiBay.Parameter("success", true));
 ///   PhaiBay.SetUserProperty("vip", "gold");
@@ -84,6 +84,10 @@ public static partial class PhaiBay
     }
 
     /// <summary>Initialize with an API key and server URL (other options use defaults).</summary>
+    /// <summary>Initialize with the app key, using the default PhaiBay server.</summary>
+    public static void Initialize(string appKey) => Initialize(appKey, null);
+
+    /// <summary>Initialize with an app key and a server URL (null / empty = default server).</summary>
     public static void Initialize(string appKey, string serverUrl, bool debugLog = false)
     {
         var s = ScriptableObject.CreateInstance<PhaiBaySettings>();
@@ -97,14 +101,14 @@ public static partial class PhaiBay
     {
         if (settings == null) throw new ArgumentNullException(nameof(settings));
         if (Initialized) { Log("already initialized"); return; }
-        if (string.IsNullOrEmpty(settings.appKey) || string.IsNullOrEmpty(settings.serverUrl))
+        if (string.IsNullOrEmpty(settings.appKey))
         {
-            Debug.LogError("[PhaiBay] appKey and serverUrl are required");
+            Debug.LogError("[PhaiBay] appKey is required");
             return;
         }
         Settings = settings;
         AppKey = settings.appKey.Trim();
-        Endpoint = settings.serverUrl.TrimEnd('/') + "/v1/events";
+        Endpoint = settings.ServerUrlOrDefault.TrimEnd('/') + "/v1/events";
         _appVersion = Application.version;
 
         AppInstanceId = PlayerPrefs.GetString("phaibay_iid", "");

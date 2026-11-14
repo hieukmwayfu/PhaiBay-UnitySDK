@@ -56,17 +56,17 @@ namespace PhaiBayEditor
 
             EditorGUILayout.LabelField("Connection", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("appKey"), new GUIContent("App Key"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("serverUrl"), new GUIContent("Server URL"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("serverUrl"), new GUIContent("Server URL", "Leave empty to use " + PhaiBaySettings.DefaultServerUrl));
+            if (string.IsNullOrWhiteSpace(s.serverUrl))
+                EditorGUILayout.LabelField(" ", "Default: " + PhaiBaySettings.DefaultServerUrl, EditorStyles.miniLabel);
 
             var key = (s.appKey ?? "").Trim();
-            var url = (s.serverUrl ?? "").Trim();
+            var url = s.ServerUrlOrDefault;
             if (key.Length == 0)
                 EditorGUILayout.HelpBox("Enter the App Key of your app (Dashboard > select app > SDK setup).", MessageType.Warning);
             else if (!AppKeyRe.IsMatch(key))
                 EditorGUILayout.HelpBox("Invalid App Key: 3-100 characters, letters, digits, '.', '_' or '-' (e.g. com.company.game).", MessageType.Error);
-            if (url.Length == 0)
-                EditorGUILayout.HelpBox("Enter the Server URL (e.g. https://analytics.your-domain.com).", MessageType.Warning);
-            else if (!url.StartsWith("https://") && !url.StartsWith("http://"))
+            if (!url.StartsWith("https://") && !url.StartsWith("http://"))
                 EditorGUILayout.HelpBox("Server URL must start with https:// or http://", MessageType.Error);
             else if (url.StartsWith("http://") && !url.Contains("localhost") && !url.Contains("127.0.0.1"))
                 EditorGUILayout.HelpBox("Plain HTTP is usually blocked on Android/iOS. Use HTTPS (or enable 'Allow downloads over HTTP' in Player Settings).", MessageType.Info);
