@@ -56,7 +56,6 @@ namespace PhaiBayEditor
 
             EditorGUILayout.LabelField("Connection", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("appKey"), new GUIContent("App Key"));
-            EditorGUILayout.LabelField(new GUIContent("Server", "Fixed: every build sends to the PhaiBay server."), new GUIContent(PhaiBaySettings.DefaultServerUrl), EditorStyles.miniLabel);
 
             var key = (s.appKey ?? "").Trim();
             var url = s.ServerUrl;
