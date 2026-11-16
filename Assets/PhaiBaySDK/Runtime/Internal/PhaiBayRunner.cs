@@ -89,7 +89,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
     void Awake()
     {
-        Device.Init();
+        Analytics.Device.Init();
         RestoreQueue();
     }
 
