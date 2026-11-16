@@ -60,7 +60,20 @@ namespace PhaiBayEditor
             var key = (s.appKey ?? "").Trim();
             var url = s.ServerUrl;
             if (key.Length == 0)
+            {
                 EditorGUILayout.HelpBox("Enter the App Key of your app (Dashboard > select app > Settings).", MessageType.Warning);
+                var packageName = PlayerSettings.applicationIdentifier;
+                if (!string.IsNullOrEmpty(packageName))
+                {
+                    if (GUILayout.Button("Use Package Name (" + packageName + ")"))
+                    {
+                        Undo.RecordObject(s, "Set PhaiBay App Key");
+                        serializedObject.FindProperty("appKey").stringValue = packageName;
+                        serializedObject.ApplyModifiedProperties();
+                        key = packageName;
+                    }
+                }
+            }
             else if (!AppKeyRe.IsMatch(key))
                 EditorGUILayout.HelpBox("Invalid App Key: 3-100 characters, letters, digits, '.', '_' or '-' (e.g. com.company.game).", MessageType.Error);
 
