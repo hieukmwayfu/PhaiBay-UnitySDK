@@ -46,7 +46,8 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     int _persistedVersion = -1;
     bool _offline;
 
-    static string QueuePath => Path.Combine(Application.persistentDataPath, QueueFile);
+    static string _queuePath;
+    static string QueuePath => _queuePath;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() // supports "Enter Play Mode" without domain reload
@@ -54,6 +55,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
         _instance = null;
         _flushRequested = false;
         _queueNeedsPersist = false;
+        _queuePath = null;
         lock (FileLock) _writtenVersion = -1;
         Analytics.ResetForPlayMode();
     }
@@ -89,6 +91,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
     void Awake()
     {
+        _queuePath = Path.Combine(Application.persistentDataPath, QueueFile);
         Analytics.Device.Init();
         RestoreQueue();
     }

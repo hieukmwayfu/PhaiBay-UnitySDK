@@ -21,7 +21,7 @@ using UnityEngine;
 /// </summary>
 public static partial class Analytics
 {
-    public const string SdkVersion = "unity-0.1.3";
+    public const string SdkVersion = "unity-0.1.4";
 
     // limits (same as the server)
     const int MaxParams = 25;
