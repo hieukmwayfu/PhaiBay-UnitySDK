@@ -58,4 +58,3 @@ public class PhaiBaySettings : ScriptableObject
     public bool debugLog = false;
 }
 }
-}

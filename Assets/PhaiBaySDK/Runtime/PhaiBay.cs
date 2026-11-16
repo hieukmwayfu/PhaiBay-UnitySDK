@@ -21,7 +21,7 @@ using UnityEngine;
 /// </summary>
 public static partial class Analytics
 {
-    public const string SdkVersion = "unity-0.1.1";
+    public const string SdkVersion = "unity-0.1.2";
 
     // limits (same as the server)
     const int MaxParams = 25;
@@ -439,6 +439,5 @@ public static partial class Analytics
     }
 
     internal static void Warn(string msg) => Debug.LogWarning("[PhaiBay] " + msg);
-}
 }
 }
