@@ -1,3 +1,5 @@
+namespace PhaiBay
+{
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -53,7 +55,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
         _flushRequested = false;
         _queueNeedsPersist = false;
         lock (FileLock) _writtenVersion = -1;
-        PhaiBay.ResetForPlayMode();
+        Analytics.ResetForPlayMode();
     }
 
     internal static void Create()
@@ -87,7 +89,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
     void Awake()
     {
-        PhaiBay.Device.Init();
+        Device.Init();
         RestoreQueue();
     }
 
@@ -105,7 +107,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
         if (_sincePersist >= PersistEvery)
         {
             _sincePersist = 0;
-            if (PhaiBay.QueueVersion != _persistedVersion) PersistQueueAsync();
+            if (Analytics.QueueVersion != _persistedVersion) PersistQueueAsync();
         }
 
         // no network: keep everything queued, do not burn retries; resume right away when it is back
@@ -115,7 +117,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
             _offline = offline;
             if (offline)
             {
-                PhaiBay.SetUploadStatus("Offline - " + PhaiBay.QueueCount + " events kept, will send when online");
+                Analytics.SetUploadStatus("Offline - " + Analytics.QueueCount + " events kept, will send when online");
                 PersistQueueAsync();
             }
             else
@@ -123,14 +125,14 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                 _nextAllowedSend = 0;
                 _backoff = MinBackoff;
                 _flushRequested = true;
-                PhaiBay.Log("network back, uploading queued events");
+                Analytics.Log("network back, uploading queued events");
             }
         }
         if (offline) return;
 
         if (_sending || Time.realtimeSinceStartup < _nextAllowedSend) return;
-        var s = PhaiBay.Settings;
-        int count = PhaiBay.QueueCount;
+        var s = Analytics.Settings;
+        int count = Analytics.QueueCount;
         if (count == 0) { _flushRequested = false; return; }
         if (_flushRequested || count >= s.flushAtCount || _sinceFlush >= s.flushIntervalSeconds)
         {
@@ -142,7 +144,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
     void OnApplicationPause(bool paused)
     {
-        if (!PhaiBay.Initialized) return;
+        if (!Analytics.Initialized) return;
         if (paused)
         {
             _backgroundAt = DateTime.UtcNow;
@@ -152,8 +154,8 @@ internal sealed class PhaiBayRunner : MonoBehaviour
         else
         {
             if (_backgroundAt != DateTime.MinValue &&
-                (DateTime.UtcNow - _backgroundAt).TotalSeconds >= PhaiBay.Settings.sessionTimeoutSeconds)
-                PhaiBay.StartSession();
+                (DateTime.UtcNow - _backgroundAt).TotalSeconds >= Analytics.Settings.sessionTimeoutSeconds)
+                Analytics.StartSession();
             _backgroundAt = DateTime.MinValue;
             _nextAllowedSend = 0; // network may be back
         }
@@ -161,7 +163,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        if (!PhaiBay.Initialized) return;
+        if (!Analytics.Initialized) return;
         PersistQueue();
     }
 
@@ -169,14 +171,14 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     {
         if (_sending) yield break;
 #if UNITY_EDITOR
-        if (!PhaiBay.Settings.sendInEditor) yield break;
+        if (!Analytics.Settings.sendInEditor) yield break;
 #endif
         _sending = true;
         try
         {
             List<string> batch;
             string batchId;
-            var head = PhaiBay.PeekBatch(1);
+            var head = Analytics.PeekBatch(1);
             if (_pendingBatch != null && head.Count > 0 && ReferenceEquals(head[0], _pendingBatch[0]))
             {
                 batch = _pendingBatch;
@@ -184,7 +186,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
             }
             else
             {
-                batch = PhaiBay.PeekBatch(PhaiBay.Settings.maxBatchSize);
+                batch = Analytics.PeekBatch(Analytics.Settings.maxBatchSize);
                 batchId = Guid.NewGuid().ToString("N");
             }
             if (batch.Count == 0) yield break;
@@ -192,7 +194,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
             var sb = new StringBuilder(batch.Count * 160 + 512);
             sb.Append("{\"batch_id\":\"").Append(batchId).Append("\",\"sent_at\":")
               .Append(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture))
-              .Append(",\"ctx\":").Append(PhaiBay.BuildContextJson())
+              .Append(",\"ctx\":").Append(Analytics.BuildContextJson())
               .Append(",\"events\":[");
             for (int i = 0; i < batch.Count; i++)
             {
@@ -207,13 +209,13 @@ internal sealed class PhaiBayRunner : MonoBehaviour
             var zipped = Gzip(body);
             if (zipped != null) { body = zipped; gz = true; }
 #endif
-            using (var req = new UnityWebRequest(PhaiBay.Endpoint, UnityWebRequest.kHttpVerbPOST))
+            using (var req = new UnityWebRequest(Analytics.Endpoint, UnityWebRequest.kHttpVerbPOST))
             {
                 req.uploadHandler = new UploadHandlerRaw(body) { contentType = "application/json" };
                 req.downloadHandler = new DownloadHandlerBuffer();
                 req.SetRequestHeader("Content-Type", "application/json");
-                req.SetRequestHeader("X-App-Key", PhaiBay.AppKey);
-                bool dry = PhaiBay.IsDryRun;
+                req.SetRequestHeader("X-App-Key", Analytics.AppKey);
+                bool dry = Analytics.IsDryRun;
                 if (dry) req.SetRequestHeader("X-PB-Dry-Run", "1"); // server validates only, stores nothing
                 if (gz) req.SetRequestHeader("Content-Encoding", "gzip");
                 req.timeout = 20;
@@ -224,21 +226,21 @@ internal sealed class PhaiBayRunner : MonoBehaviour
 
                 if (!netError && code >= 200 && code < 300)
                 {
-                    PhaiBay.RemoveSent(batch);
+                    Analytics.RemoveSent(batch);
                     _pendingBatch = null;
                     _backoff = MinBackoff;
-                    PhaiBay.SetUploadStatus(dry
+                    Analytics.SetUploadStatus(dry
                         ? "TEST OK " + code + ": " + batch.Count + " events valid (dry run, not stored)"
                         : "OK " + code + ": sent " + batch.Count + " events");
-                    PhaiBay.Log("sent " + batch.Count + " events (" + body.Length + " bytes): " + req.downloadHandler.text);
-                    if (PhaiBay.QueueCount >= PhaiBay.Settings.flushAtCount) _flushRequested = true;
+                    Analytics.Log("sent " + batch.Count + " events (" + body.Length + " bytes): " + req.downloadHandler.text);
+                    if (Analytics.QueueCount >= Analytics.Settings.flushAtCount) _flushRequested = true;
                 }
                 else if (!netError && (code == 400 || code == 413))
                 {
                     // malformed / too large: retrying won't help, drop it so the queue keeps moving
-                    PhaiBay.SetUploadStatus("Rejected " + code + ": " + req.downloadHandler.text);
-                    PhaiBay.Warn("server rejected batch (" + code + "): " + req.downloadHandler.text + " - dropped " + batch.Count + " events");
-                    PhaiBay.RemoveSent(batch);
+                    Analytics.SetUploadStatus("Rejected " + code + ": " + req.downloadHandler.text);
+                    Analytics.Warn("server rejected batch (" + code + "): " + req.downloadHandler.text + " - dropped " + batch.Count + " events");
+                    Analytics.RemoveSent(batch);
                     _pendingBatch = null;
                 }
                 else
@@ -254,12 +256,12 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                         Debug.LogError("[PhaiBay] unknown app key - check PhaiBaySettings.appKey (Dashboard > select app > SDK setup)");
                         wait = MaxBackoff;
                     }
-                    PhaiBay.SetUploadStatus((netError ? "Network error: " + req.error : "HTTP " + code + ": " + req.downloadHandler.text)
+                    Analytics.SetUploadStatus((netError ? "Network error: " + req.error : "HTTP " + code + ": " + req.downloadHandler.text)
                         + " (retry in " + wait.ToString("0") + "s)");
                     _nextAllowedSend = Time.realtimeSinceStartup + wait;
                     PersistQueueAsync(); // keep the unsent batch safe while we wait
                     _backoff = Mathf.Min(_backoff * 2f, MaxBackoff);
-                    PhaiBay.Log("upload failed (" + code + " " + req.error + "), retry in " + wait.ToString("0") + "s");
+                    Analytics.Log("upload failed (" + code + " " + req.error + "), retry in " + wait.ToString("0") + "s");
                 }
             }
         }
@@ -286,7 +288,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     /// <summary>Synchronous save (pause / quit: the OS may kill the process right after).</summary>
     void PersistQueue()
     {
-        var snap = PhaiBay.Snapshot(out int version);
+        var snap = Analytics.Snapshot(out int version);
         _persistedVersion = version;
         WriteQueueFile(snap, version);
     }
@@ -294,7 +296,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
     /// <summary>Snapshot on the main thread, write the file on a worker thread (no frame hitch).</summary>
     void PersistQueueAsync()
     {
-        var snap = PhaiBay.Snapshot(out int version);
+        var snap = Analytics.Snapshot(out int version);
         _persistedVersion = version;
         System.Threading.ThreadPool.QueueUserWorkItem(_ => WriteQueueFile(snap, version));
     }
@@ -327,7 +329,7 @@ internal sealed class PhaiBayRunner : MonoBehaviour
                 }
                 _writtenVersion = version;
             }
-            catch (Exception e) { PhaiBay.Warn("persist queue failed: " + e.Message); }
+            catch (Exception e) { Analytics.Warn("persist queue failed: " + e.Message); }
         }
     }
 
@@ -342,11 +344,13 @@ internal sealed class PhaiBayRunner : MonoBehaviour
             var list = new List<string>(lines.Length);
             foreach (var l in lines)
                 if (l.Length > 2 && l[0] == '{' && l[l.Length - 1] == '}') list.Add(l);
-            PhaiBay.PrependRestored(list);
+            Analytics.PrependRestored(list);
             // Leave the durable snapshot in place until a newer snapshot has been written.
             // If the app is killed before the first Update, the next launch can still restore it.
-            PhaiBay.Log("restored " + list.Count + " queued events");
+            Analytics.Log("restored " + list.Count + " queued events");
         }
-        catch (Exception e) { PhaiBay.Warn("restore queue failed: " + e.Message); }
+        catch (Exception e) { Analytics.Warn("restore queue failed: " + e.Message); }
     }
+}
+}
 }

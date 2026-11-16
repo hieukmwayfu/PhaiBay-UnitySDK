@@ -1,8 +1,10 @@
+namespace PhaiBay
+{
 using System;
 using System.Globalization;
 using UnityEngine;
 
-public static partial class PhaiBay
+public static partial class Analytics
 {
     /// <summary>Device context. Values are computed once on the main thread (Unity APIs are main-thread only).</summary>
     internal static class Device
@@ -85,4 +87,6 @@ public static partial class PhaiBay
             }
         }
     }
+}
+}
 }

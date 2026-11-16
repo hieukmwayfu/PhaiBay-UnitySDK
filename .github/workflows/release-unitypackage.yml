@@ -1,0 +1,48 @@
+name: Release Unity package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish .unitypackage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure tag points to main branch
+        shell: bash
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*'
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main 2>/dev/null; then
+            echo "Tag commit is included in origin/main"
+          elif git merge-base --is-ancestor "$GITHUB_SHA" origin/master 2>/dev/null; then
+            echo "Tag commit is included in origin/master"
+          else
+            echo "Tag must point to a commit on the main branch" >&2
+            exit 1
+          fi
+
+      - name: Build Unity package
+        run: >-
+          python3 .github/scripts/build_unitypackage.py
+          --source Assets/PhaiBaySDK
+          --output "PhaiBay-UnitySDK-${GITHUB_REF_NAME}.unitypackage"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          "PhaiBay-UnitySDK-${GITHUB_REF_NAME}.unitypackage"
+          --verify-tag
+          --title "$GITHUB_REF_NAME"
+          --generate-notes

@@ -1,3 +1,5 @@
+namespace PhaiBay
+{
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -54,4 +56,6 @@ public class PhaiBaySettings : ScriptableObject
 
     [Tooltip("Log every event / upload to the Unity console")]
     public bool debugLog = false;
+}
+}
 }

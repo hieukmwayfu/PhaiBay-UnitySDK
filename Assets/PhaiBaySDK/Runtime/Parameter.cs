@@ -1,4 +1,6 @@
-public static partial class PhaiBay
+namespace PhaiBay
+{
+public static partial class Analytics
 {
     /// <summary>Event parameter, same idea as Firebase.Analytics.Parameter.</summary>
     public sealed class Parameter
@@ -43,4 +45,6 @@ public static partial class PhaiBay
         public const string AdFormat = "ad_format";
         public const string AdUnitName = "ad_unit_name";
     }
+}
+}
 }

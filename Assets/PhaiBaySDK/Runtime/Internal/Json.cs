@@ -1,9 +1,11 @@
+namespace PhaiBay
+{
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-public static partial class PhaiBay
+public static partial class Analytics
 {
     /// <summary>Tiny allocation-light JSON writer (JsonUtility can't do dictionaries).</summary>
     internal static class Json
@@ -127,4 +129,6 @@ public static partial class PhaiBay
             return sb.ToString();
         }
     }
+}
+}
 }

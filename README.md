@@ -32,7 +32,7 @@ Hoặc thêm vào `Packages/manifest.json`:
 Cách 1 – bằng code (gọi sớm nhất có thể, ví dụ trong scene đầu tiên):
 
 ```csharp
-PhaiBay.Initialize("com.company.game");   // server cố định: PhaiBaySettings.DefaultServerUrl
+PhaiBay.Analytics.Initialize("com.company.game");   // server cố định: PhaiBaySettings.DefaultServerUrl
 ```
 
 Cách 2 – tự động (khuyên dùng): menu **PhaiBay › Settings** mở cửa sổ quản lý ScriptableObject `Assets/Resources/PhaiBaySettings.asset` (bấm **Tạo Settings** nếu chưa có). Chỉ cần điền **App Key** (server cố định `PhaiBaySettings.DefaultServerUrl`, không cần cấu hình), bấm **Kiểm tra kết nối & App Key** để thử. SDK tự khởi tạo trước khi load scene đầu tiên.
@@ -45,41 +45,41 @@ Hỗ trợ **Enter Play Mode Options** với *Reload Domain* tắt: mọi static
 
 Mặc định (`realDataOnlyOnAndroid = true`) **chỉ bản build Android ghi dữ liệu thật**. Trong Unity Editor và bản build Windows / Mac / Linux, SDK gửi event kèm header `X-PB-Dry-Run: 1`: server vẫn kiểm tra App Key, kết nối, rate limit và định dạng event, trả về số event hợp lệ nhưng **không ghi DB**, nên dashboard không bị lẫn data test.
 
-- `PhaiBay.IsDryRun` cho biết đang ở chế độ test.
-- `PhaiBay.LastUploadStatus` hiện kết quả lần gửi gần nhất, ví dụ `TEST OK 200: 12 events valid (dry run, not stored)`.
+- `PhaiBay.Analytics.IsDryRun` cho biết đang ở chế độ test.
+- `PhaiBay.Analytics.LastUploadStatus` hiện kết quả lần gửi gần nhất, ví dụ `TEST OK 200: 12 events valid (dry run, not stored)`.
 - Tắt `Real Data Only On Android` trong Settings nếu muốn mọi nền tảng đều ghi thật.
 
 ## Sử dụng
 
 ```csharp
 // event không param
-PhaiBay.LogEvent("tutorial_begin");
+PhaiBay.Analytics.LogEvent("tutorial_begin");
 
 // 1 param
-PhaiBay.LogEvent("level_start", "level", 5);
+PhaiBay.Analytics.LogEvent("level_start", "level", 5);
 
 // nhiều param
-PhaiBay.LogEvent("level_end",
-    new PhaiBay.Parameter("level", 5),
-    new PhaiBay.Parameter("success", true),
-    new PhaiBay.Parameter("time_sec", 42.5));
+PhaiBay.Analytics.LogEvent("level_end",
+    new PhaiBay.Analytics.Parameter("level", 5),
+    new PhaiBay.Analytics.Parameter("success", true),
+    new PhaiBay.Analytics.Parameter("time_sec", 42.5));
 
 // hoặc Dictionary
-PhaiBay.LogEvent("purchase", new Dictionary<string, object> {
+PhaiBay.Analytics.LogEvent("purchase", new Dictionary<string, object> {
     { "item_id", "gem_pack" }, { "value", 0.99 }, { "currency", "USD" },
 });
 
 // user
-PhaiBay.SetUserId("account_123");          // id tài khoản của bạn (tùy chọn)
-PhaiBay.SetUserProperty("vip", "gold");    // gắn vào mọi event sau đó, null để xóa
+PhaiBay.Analytics.SetUserId("account_123");          // id tài khoản của bạn (tùy chọn)
+PhaiBay.Analytics.SetUserProperty("vip", "gold");    // gắn vào mọi event sau đó, null để xóa
 
 // khác
-PhaiBay.Flush();                            // gửi ngay
-PhaiBay.SetAnalyticsCollectionEnabled(false);
-PhaiBay.ResetAnalyticsData();
+PhaiBay.Analytics.Flush();                            // gửi ngay
+PhaiBay.Analytics.SetAnalyticsCollectionEnabled(false);
+PhaiBay.Analytics.ResetAnalyticsData();
 ```
 
-Hằng số tên event/param thường dùng: `PhaiBay.Events.LevelStart`, `PhaiBay.Params.Level`, …
+Hằng số tên event/param thường dùng: `PhaiBay.Analytics.Events.LevelStart`, `PhaiBay.Analytics.Params.Level`, …
 
 ### Quy tắc (giống Firebase)
 

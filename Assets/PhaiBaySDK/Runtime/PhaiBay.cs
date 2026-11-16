@@ -1,3 +1,5 @@
+namespace PhaiBay
+{
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,18 +10,18 @@ using UnityEngine;
 /// <summary>
 /// PhaiBay Analytics - Firebase-like API.
 ///
-///   PhaiBay.Initialize("com.company.game");   // default server; or a PhaiBaySettings asset in Resources
-///   PhaiBay.LogEvent("level_start", "level", 5);
-///   PhaiBay.LogEvent("level_end", new PhaiBay.Parameter("level", 5), new PhaiBay.Parameter("success", true));
-///   PhaiBay.SetUserProperty("vip", "gold");
+///   Analytics.Initialize("com.company.game");   // default server; or a PhaiBaySettings asset in Resources
+///   Analytics.LogEvent("level_start", "level", 5);
+///   Analytics.LogEvent("level_end", new Parameter("level", 5), new Parameter("success", true));
+///   Analytics.SetUserProperty("vip", "gold");
 ///
 /// LogEvent can be called from any thread; Initialize / SetUserId / SetUserProperty from the main thread.
 /// Events logged before Initialize are kept and sent after it.
 /// Events are queued, persisted to disk on pause/quit and uploaded in gzip batches with retry.
 /// </summary>
-public static partial class PhaiBay
+public static partial class Analytics
 {
-    public const string SdkVersion = "unity-0.1.0";
+    public const string SdkVersion = "unity-0.1.1";
 
     // limits (same as the server)
     const int MaxParams = 25;
@@ -437,4 +439,6 @@ public static partial class PhaiBay
     }
 
     internal static void Warn(string msg) => Debug.LogWarning("[PhaiBay] " + msg);
+}
+}
 }

@@ -1,3 +1,4 @@
+using PhaiBay;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -194,7 +195,7 @@ namespace PhaiBayEditor
         void OnGUI()
         {
             EditorGUILayout.LabelField("PhaiBay Analytics", EditorStyles.largeLabel);
-            EditorGUILayout.LabelField("SDK " + PhaiBay.SdkVersion, EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("SDK " + Analytics.SdkVersion, EditorStyles.miniLabel);
             EditorGUILayout.Space();
 
             if (_settings == null)
