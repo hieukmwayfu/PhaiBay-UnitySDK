@@ -100,7 +100,7 @@ public class PhaiBayDemo : MonoBehaviour
         if (GUILayout.Button("Initialize", GUILayout.Height(36)))
         {
             PlayerPrefs.SetString("demo_key", appKey);
-            PhaiBay.Analytics.__ANALYTICS__.Initialize(appKey.Trim(), debugLog);
+            PhaiBay.Analytics.Initialize(appKey.Trim(), debugLog);
             _status = PhaiBay.Analytics.IsInitialized ? "Initialized" : "Init failed - see log";
         }
         GUI.enabled = true;
@@ -111,64 +111,64 @@ public class PhaiBayDemo : MonoBehaviour
 
         GUILayout.Space(8);
         GUILayout.Label(PhaiBay.Analytics.IsInitialized
-            ? (PhaiBay.Analytics.__ANALYTICS__.IsDryRun ? "<color=#ffd166><b>TEST MODE</b> - validated by server, not stored (Android only = real data)</color>"
+            ? (PhaiBay.Analytics.IsDryRun ? "<color=#ffd166><b>TEST MODE</b> - validated by server, not stored (Android only = real data)</color>"
                                 : "<color=#6bdc8b><b>LIVE</b> - events are recorded</color>")
             : "Not initialized", new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true });
         GUILayout.Label($"Instance id: {PhaiBay.Analytics.AppInstanceId}\nSession: {PhaiBay.Analytics.SessionId}\nQueued: {PhaiBay.Analytics.PendingEventCount}\n" +
-                        $"Last upload: {PhaiBay.Analytics.__ANALYTICS__.LastUploadStatus ?? "-"}\n{_status}");
+                        $"Last upload: {PhaiBay.Analytics.LastUploadStatus ?? "-"}\n{_status}");
 
         GUILayout.Space(8);
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("level_start", GUILayout.Height(32)))
-            PhaiBay.Analytics.__ANALYTICS__.LogEvent(PhaiBay.Analytics.__ANALYTICS__.Events.LevelStart, PhaiBay.Analytics.__ANALYTICS__.Params.Level, _level);
+            PhaiBay.Analytics.LogEvent(PhaiBay.Analytics.Events.LevelStart, PhaiBay.Analytics.Params.Level, _level);
         if (GUILayout.Button("level_end (win)", GUILayout.Height(32)))
         {
-            PhaiBay.Analytics.__ANALYTICS__.LogEvent(PhaiBay.Analytics.__ANALYTICS__.Events.LevelEnd,
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Level, _level),
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Success, true),
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter("stars", UnityEngine.Random.Range(1, 4)));
+            PhaiBay.Analytics.LogEvent(PhaiBay.Analytics.Events.LevelEnd,
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Level, _level),
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Success, true),
+                new PhaiBay.Analytics.Parameter("stars", UnityEngine.Random.Range(1, 4)));
             _level++;
         }
         if (GUILayout.Button("level_end (lose)", GUILayout.Height(32)))
-            PhaiBay.Analytics.__ANALYTICS__.LogEvent(PhaiBay.Analytics.__ANALYTICS__.Events.LevelEnd,
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Level, _level),
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Success, false));
+            PhaiBay.Analytics.LogEvent(PhaiBay.Analytics.Events.LevelEnd,
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Level, _level),
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Success, false));
         GUILayout.EndHorizontal();
 
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("purchase $0.99", GUILayout.Height(32)))
-            PhaiBay.Analytics.__ANALYTICS__.LogEvent(PhaiBay.Analytics.__ANALYTICS__.Events.Purchase,
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.ItemId, "gem_pack_small"),
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Value, 0.99),
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Currency, "USD"));
+            PhaiBay.Analytics.LogEvent(PhaiBay.Analytics.Events.Purchase,
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.ItemId, "gem_pack_small"),
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Value, 0.99),
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Currency, "USD"));
         if (GUILayout.Button("ad_impression", GUILayout.Height(32)))
-            PhaiBay.Analytics.__ANALYTICS__.LogEvent(PhaiBay.Analytics.__ANALYTICS__.Events.AdImpression,
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.AdFormat, UnityEngine.Random.value > 0.5f ? "interstitial" : "rewarded"),
-                new PhaiBay.Analytics.__ANALYTICS__.Parameter(PhaiBay.Analytics.__ANALYTICS__.Params.Value, UnityEngine.Random.Range(0.001f, 0.02f)));
+            PhaiBay.Analytics.LogEvent(PhaiBay.Analytics.Events.AdImpression,
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.AdFormat, UnityEngine.Random.value > 0.5f ? "interstitial" : "rewarded"),
+                new PhaiBay.Analytics.Parameter(PhaiBay.Analytics.Params.Value, UnityEngine.Random.Range(0.001f, 0.02f)));
         GUILayout.EndHorizontal();
 
         GUILayout.Space(8);
         GUILayout.BeginHorizontal();
         _userId = GUILayout.TextField(_userId);
-        if (GUILayout.Button("SetUserId", GUILayout.Width(110))) PhaiBay.Analytics.__ANALYTICS__.SetUserId(_userId);
+        if (GUILayout.Button("SetUserId", GUILayout.Width(110))) PhaiBay.Analytics.SetUserId(_userId);
         GUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("vip = gold")) PhaiBay.Analytics.__ANALYTICS__.SetUserProperty("vip", "gold");
-        if (GUILayout.Button("vip = none")) PhaiBay.Analytics.__ANALYTICS__.SetUserProperty("vip", null);
-        if (GUILayout.Button("ab_group = B")) PhaiBay.Analytics.__ANALYTICS__.SetUserProperty("ab_group", "B");
+        if (GUILayout.Button("vip = gold")) PhaiBay.Analytics.SetUserProperty("vip", "gold");
+        if (GUILayout.Button("vip = none")) PhaiBay.Analytics.SetUserProperty("vip", null);
+        if (GUILayout.Button("ab_group = B")) PhaiBay.Analytics.SetUserProperty("ab_group", "B");
         GUILayout.EndHorizontal();
 
         GUILayout.Space(8);
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Flush now", GUILayout.Height(32))) { PhaiBay.Analytics.__ANALYTICS__.Flush(); Debug.Log("[Demo] flush requested"); }
+        if (GUILayout.Button("Flush now", GUILayout.Height(32))) { PhaiBay.Analytics.Flush(); Debug.Log("[Demo] flush requested"); }
         if (GUILayout.Button("Log 500 random", GUILayout.Height(32)))
         {
             for (int i = 0; i < 500; i++)
-                PhaiBay.Analytics.__ANALYTICS__.LogEvent("stress_test", new PhaiBay.Analytics.__ANALYTICS__.Parameter("i", i), new PhaiBay.Analytics.__ANALYTICS__.Parameter("r", UnityEngine.Random.value));
+                PhaiBay.Analytics.LogEvent("stress_test", new PhaiBay.Analytics.Parameter("i", i), new PhaiBay.Analytics.Parameter("r", UnityEngine.Random.value));
             Debug.Log("[Demo] queued 500 stress_test events");
         }
         if (GUILayout.Button("Invalid name", GUILayout.Height(32)))
-            PhaiBay.Analytics.__ANALYTICS__.LogEvent("bad name!"); // rejected client-side with a warning
+            PhaiBay.Analytics.LogEvent("bad name!"); // rejected client-side with a warning
         GUILayout.EndHorizontal();
 
         GUILayout.EndScrollView();
