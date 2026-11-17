@@ -11,7 +11,9 @@ public static partial class Analytics
     {
         public static string Platform = "";
         public static string Language = "";
-        public static string Country = ""; // fallback only; the server prefers GeoIP / CDN country
+        public static string Country = ""; // device region setting (user editable) - last fallback
+        public static string SimCountry = ""; // SIM issuer country (Android)
+        public static string NetCountry = ""; // mobile network country (Android)
 
         public static void Init()
         {
@@ -25,6 +27,21 @@ public static partial class Analytics
                 {
                     lang = def.Call<string>("getLanguage");
                     country = def.Call<string>("getCountry");
+                }
+            }
+            catch (Exception) { }
+            // SIM / network country cannot be changed in Settings, unlike the region (no permission needed)
+            try
+            {
+                using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                using (var activity = player.GetStatic<AndroidJavaObject>("currentActivity"))
+                using (var tm = activity.Call<AndroidJavaObject>("getSystemService", "phone"))
+                {
+                    if (tm != null)
+                    {
+                        SimCountry = Iso(tm.Call<string>("getSimCountryIso"));
+                        NetCountry = Iso(tm.Call<string>("getNetworkCountryIso"));
+                    }
                 }
             }
             catch (Exception) { }
@@ -42,8 +59,10 @@ public static partial class Analytics
             }
             if (string.IsNullOrEmpty(lang)) lang = LangFromSystem(Application.systemLanguage);
             Language = (lang ?? "").ToLowerInvariant();
-            Country = country != null && country.Length == 2 ? country.ToUpperInvariant() : "";
+            Country = Iso(country);
         }
+
+        static string Iso(string c) => c != null && c.Length == 2 ? c.ToUpperInvariant() : "";
 
         static string PlatformName()
         {

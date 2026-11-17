@@ -397,6 +397,8 @@ public static partial class Analytics
         sb.Append(",\"device\":"); Json.Str(sb, Clip(SystemInfo.deviceModel, 64));
         sb.Append(",\"lang\":"); Json.Str(sb, Device.Language);
         sb.Append(",\"country\":"); Json.Str(sb, Device.Country);
+        sb.Append(",\"sim_country\":"); Json.Str(sb, Device.SimCountry);
+        sb.Append(",\"net_country\":"); Json.Str(sb, Device.NetCountry);
         sb.Append(",\"sdk\":"); Json.Str(sb, SdkVersion);
         return sb.Append('}').ToString();
     }
